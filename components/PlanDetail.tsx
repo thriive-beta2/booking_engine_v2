@@ -130,7 +130,7 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, onProceed, onBack }) => {
             <div className="space-y-6 mb-12">
                <div className="flex justify-between items-baseline">
                   <span className="text-sm font-bold text-stone-400">Price</span>
-                  <span className="text-lg font-bold text-stone-400 line-through">₹{plan.discountedPrice.toLocaleString()}</span>
+                  <span className="text-lg font-bold text-stone-400 line-through">₹{plan?.discountedPrice?.toLocaleString()}</span>
                </div>
                <div className="flex justify-between items-end">
                   <span className="text-sm font-black text-teal-700 uppercase tracking-tighter">Retreat Offering</span>

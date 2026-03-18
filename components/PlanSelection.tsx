@@ -50,7 +50,7 @@ const PlanSelection: React.FC<PlanSelectionProps> = ({ plans, ui, onSelect, onBa
 
               <div className="mt-auto flex items-end justify-between pt-6 border-t border-stone-50">
                 <div>
-                  <span className="text-stone-400 line-through text-sm font-bold">₹{plan.discountedPrice.toLocaleString()}</span>
+                  <span className="text-stone-400 line-through text-sm font-bold">₹{plan?.discountedPrice?.toLocaleString()}</span>
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-black text-stone-900">₹{plan.finalPrice.toLocaleString()}</span>
                     <span className="text-xs text-emerald-600 font-bold">{plan.gstDetails}</span>

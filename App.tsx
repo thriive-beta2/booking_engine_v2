@@ -33,21 +33,39 @@ const App: React.FC = () => {
 
   const [paymentResult, setPaymentResult] = useState<'SUCCESS' | 'FAILED' | null>(null);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const eventId = urlParams.get('id') || '1'; // Dynamic ID from URL
-        const allData = await getAllData(eventId);
-        setData(allData);
-      } catch (err) {
-        setError('Failed to load event data. Please ensure the URL is correct.');
-      } finally {
-        setLoading(false);
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      console.log("🚀 loadData triggered");
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const eventId = urlParams.get('id') || '1';
+      console.log("📌 Event ID:", eventId);
+
+      const allData = await getAllData(eventId);
+      console.log("📦 Full API Response:", allData);
+
+      console.log("📊 Plans from API:", allData?.plans);
+      console.log("📊 Plans length:", allData?.plans?.length);
+
+      if (!allData?.plans || allData.plans.length === 0) {
+        console.warn("⚠️ No plans found for this event");
       }
-    };
-    loadData();
-  }, []);
+
+      setData(allData);
+      console.log("✅ Data set in state");
+
+    } catch (err) {
+      console.error("❌ Error loading data:", err);
+      setError('Failed to load event data. Please ensure the URL is correct.');
+    } finally {
+      console.log("🏁 Loading finished");
+      setLoading(false);
+    }
+  };
+
+  loadData();
+}, []);
 
   const nextStep = () => setBookingState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
   const prevStep = () => setBookingState(prev => ({ ...prev, currentStep: Math.max(1, prev.currentStep - 1) }));

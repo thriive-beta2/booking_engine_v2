@@ -74,7 +74,7 @@ export const fetchData = async <T>(path: string): Promise<T> => {
 };
 
 export const getAllData = async (eventId: string | number) => {
-  const apiResponse = await fetch(`https://bookingapi.thriive.in/events/${eventId}/details`);
+  const apiResponse = await fetch(`https://bookingapi.thriive.in/events/${eventId}`);
   
   if (!apiResponse.ok) throw new Error('Event not found or API down');
   const apiData = await apiResponse.json();

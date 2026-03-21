@@ -1,5 +1,8 @@
-
 import { EventData, Plan } from '../../types';
+
+// 1. Locally extend EventData so TypeScript knows about 'id'
+// without having to modify the external types file.
+type EventDataWithId = EventData & { id: number | string };
 
 export interface UIContent {
   landingPage: any;
@@ -22,23 +25,56 @@ export interface AppConfig {
   ROOM_TYPES: any[];
 }
 
+export interface EventImage {
+  id: number;
+  url: string;
+  isMain: boolean;
+  isThumbnail: boolean;
+}
+
+export interface EventTemplateFile {
+  file: string | null;
+  templateUrl: string | null;
+}
+
+export interface EventTemplates {
+  invoice: EventTemplateFile;
+  ticket: EventTemplateFile;
+  certificate: EventTemplateFile;
+}
+
+export interface EventScheduleItem {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  description: string;
+}
+
+export interface AdditionalAsset {
+  id: number;
+  type: string;
+  title: string;
+  url: string;
+}
+
+
+
 export interface EventResponse {
-  event: EventData;
-  schedules: any[];
-  mentors: any;
+  event: EventDataWithId;
+  schedule: EventScheduleItem[];
+  mentors: any[];
   insights: any[];
 }
 
 export const fetchData = async <T>(path: string): Promise<T> => {
-  const response = await fetch(`http://localhost:3000/data/${path}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${path}`);
-  }
+  const response = await fetch(`https://booking-engine.thriive.in/data/${path}`);
+  if (!response.ok) throw new Error(`Failed to fetch ${path}`);
   return response.json();
 };
 
 export const getAllData = async (eventId: string | number) => {
-  const apiResponse = await fetch(`http://localhost:4000/events/${eventId}`);
+  const apiResponse = await fetch(`https://bookingapi.thriive.in/events/${eventId}`);
   
   if (!apiResponse.ok) throw new Error('Event not found or API down');
   const apiData = await apiResponse.json();
@@ -47,80 +83,19 @@ export const getAllData = async (eventId: string | number) => {
     fetchData<UIContent>('ui-content.json'),
     fetchData<AppConfig>('config.json')
   ]);
-const mappedMentors = {
-  main: apiData.mentors?.[0]
-    ? {
-        name: apiData.mentors[0].name || "",
-        role: apiData.mentors[0].role || "",
-        bio: apiData.mentors[0].bio || "",
-        img: apiData.mentors[0].img || "https://via.placeholder.com/400x500?text=Mentor",
-      }
-    : {
-        name: "Coming Soon",
-        role: "",
-        bio: "",
-        img: "https://via.placeholder.com/400x500?text=Mentor",
-      },
 
-  others: (apiData.mentors || []).slice(1).map((mentor: any) => ({
-    name: mentor.name || "",
-    role: mentor.role || "",
-    bio: mentor.bio || "",
-    img: mentor.img || "https://via.placeholder.com/200x200?text=Mentor",
-  })),
-};
-const mappedPlans: Plan[] = (apiData.plans || []).map((plan: any) => {
-  console.log("RAW PLAN:", plan);
-  console.log("RAW ICONS:", plan.amenities);
-
-  return {
-    id: String(plan.planID),
-    title: plan.PlanTitle || "",
-    thumbnail:
-      plan.banner ||
-      plan.images?.find((img: any) => img.isMain)?.imageUrl ||
-      plan.images?.find((img: any) => img.isThumbnail)?.imageUrl ||
-      "https://placehold.co/400",
-    description: plan.PlanDescription || "",
-    fullDescription: plan.fullDescription || "",
-    discountedPrice: Number(plan.OfferPrice || 0),
-    finalPrice: Number(plan.PlanPrice || 0),
-    gstDetails: plan.gstDetails || "",
-
-    amenities: (plan.amenities || []).map((icon: any) => ({
-      id: icon.id,
-      title: icon.title || "",
-      iconUrl: encodeURI(icon.iconUrl || ""),
-      type: icon.type || "",
-      planID: icon.planID,
-    })),
-   /*  icons: (plan.icons || []).map((icon: any) => ({
-      id: icon.id,
-      title: icon.title || "",
-      iconUrl: encodeURI(icon.iconUrl || ""),
-      type: icon.type || "",
-      planID: icon.planID,
-    })), */
-  };
-});
 const eventData: EventResponse = {
   event: {
     id: apiData.EventID,
     title: apiData.EventName,
-    banner:
-      apiData.banner ||
-      apiData.images?.find((img: any) => img.isMain)?.url ||
-      apiData.images?.find((img: any) => img.isThumbnail)?.url ||
-      "",
-    date: `${apiData.startDate} to ${apiData.endDate}`,
+    bannerImage: apiData.bannerImage,
+    date: `${apiData.EventStartDate} to ${apiData.EventEndDate}`,
     time: apiData.time || "06:00 AM",
     venue: apiData.venue || "PVI Bengaluru",
-    description: apiData.description,
-    schedules: apiData.schedules || [],
-    plans: mappedPlans || [],
+    description: apiData.description
   },
-  schedules: apiData.schedules || [],
-  mentors: mappedMentors,
+  schedule: apiData.schedules || [],
+  mentors: apiData.mentors,
   insights: apiData.insights || []
 };
 
@@ -129,13 +104,8 @@ const eventData: EventResponse = {
     id: p.planID.toString(),
     thumbnail: p.bannerImage,
     finalPrice: p.PlanPrice,
-   amenities: (p.amenities || []).map((icon: any) => ({
-      id: icon.id,
-      title: icon.title || "",
-      iconUrl: encodeURI(icon.iconUrl || ""),
-      type: icon.type || "",
-      planID: icon.planID,
-    })), }));
+    amenities: p.icons ? p.icons.map((i: any) => i.Title) : []
+  }));
 
   return {
     eventData,
@@ -145,3 +115,17 @@ const eventData: EventResponse = {
   };
 };
 
+export const createBooking = async (bookingData: any) => {
+  const response = await fetch('https://bookingapi.thriive.in/bookings', { 
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bookingData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create booking');
+  }
+
+  return response.json();
+};

@@ -30,7 +30,7 @@ export interface EventResponse {
 }
 
 export const fetchData = async <T>(path: string): Promise<T> => {
-  const response = await fetch(`http://localhost:3000/data/${path}`);
+  const response = await fetch(`https://booking-engine.thriive.in/data/${path}`);
   if (!response.ok) throw new Error(`Failed to fetch ${path}`);
   return response.json();
 };

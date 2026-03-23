@@ -68,14 +68,24 @@ useEffect(() => {
     setBookingState(prev => ({ ...prev, selectedPlan: plan, currentStep: 3 }));
   };
 
-  const handlePayment = (success: boolean, bookingId?: string | number) => {
+const handlePayment = (success: boolean, bookingId?: string | number) => {
+  console.log("💰 handlePayment called");
+  console.log("➡️ success:", success);
+  console.log("➡️ bookingId received:", bookingId);
+
   if (success) {
     setPaymentResult('SUCCESS');
-    setBookingState(prev => ({
-      ...prev,
-      bookingId: bookingId ?? prev.bookingId,
-      currentStep: 6
-    }));
+
+    setBookingState(prev => {
+      const updated = {
+        ...prev,
+        bookingId: bookingId ?? prev.bookingId,
+        currentStep: 6
+      };
+
+      console.log("🧾 Updated bookingState:", updated);
+      return updated;
+    });
   } else {
     setPaymentResult('FAILED');
     setBookingState(prev => ({ ...prev, currentStep: 5 }));

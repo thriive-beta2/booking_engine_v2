@@ -71,9 +71,17 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ bookingState, event, ui
       };
 
       const response = await createBooking(payload);
+console.log("📦 createBooking full response:", response);
+console.log("🆔 response.bookingId:", response?.bookingId);
+console.log("🆔 response.booking_id:", response?.booking_id);
+console.log("🆔 response.id:", response?.id);
+console.log("🆔 response.data?.bookingId:", response?.data?.bookingId);
+console.log("🆔 response.data?.booking_id:", response?.data?.booking_id);
 
       if (response.bookingId) {
         setTimeout(() => {
+          console.log("📦 BookingSummary API response:", response);
+console.log("📦 bookingId from API:", response?.bookingId);
             onConfirm(true, response.bookingId);
         }, 2000);
         } else {

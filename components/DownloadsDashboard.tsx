@@ -35,26 +35,43 @@ interface DownloadsDashboardProps {
 }
 
 const DownloadsDashboard: React.FC<DownloadsDashboardProps> = ({ bookingState, event, ui }) => {
-  const bookingDate = useMemo(() => new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }), []);
+const bookingDate = useMemo(() => new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }), []);
+console.log("bookingState:", bookingState);
 
-  const documents = [
-    { title: "Confirmed Ticket PDF", icon: Ticket, status: "Ready", size: "1.4 MB", desc: "Your entry pass to the sanctuary" },
-    { title: "Invoice PDF", icon: FileText, status: "Ready", size: "920 KB", desc: "Detailed payment breakdown" },
-    { title: "Event Brochure", icon: BookOpen, status: "Ready", size: "5.2 MB", desc: "Full retreat guide & protocols" },
-    { title: "Stay/Room Details", icon: Bed, status: "Ready", size: "640 KB", desc: "Cottage allocation & amenities" },
-    { title: "Venue Map & Directions", icon: Compass, status: "Ready", size: "3.1 MB", desc: "Coordinates for Silent Valley" },
-    { title: "Packing Checklist", icon: Backpack, status: "Ready", size: "1.1 MB", desc: "Essential items for the 5-day stay" },
-  ];
-
-  if (bookingState.is80GRequired) {
-    documents.push({ 
-      title: "80G Receipt", 
-      icon: ShieldCheck, 
-      status: "Download in 2-3 days", 
-      size: "--", 
-      desc: "Post-event verification required" 
-    });
-  }
+const documents = [
+  bookingState?.ticketUrl && {
+    title: "Confirmed Ticket PDF",
+    icon: Ticket,
+    status: "Ready",
+    size: "1.4 MB",
+    desc: "Your entry pass to the sanctuary",
+    url: bookingState.ticketUrl,
+  },
+  bookingState?.invoiceUrl && {
+    title: "Invoice PDF",
+    icon: FileText,
+    status: "Ready",
+    size: "920 KB",
+    desc: "Detailed payment breakdown",
+    url: bookingState.invoiceUrl,
+  },
+  bookingState?.completionCertificateUrl && {
+    title: "Completion Certificate",
+    icon: FileText,
+    status: "Ready",
+    size: "--",
+    desc: "Your participation certificate",
+    url: bookingState.completionCertificateUrl,
+  },
+  ...((bookingState?.additionalAssets || []).map((asset: any) => ({
+    title: asset.title || "Untitled Document",
+    icon: FileText,
+    status: asset.status || "Ready",
+    size: asset.size || "--",
+    desc: asset.description || "",
+    url: asset.url || "#",
+  }))),
+].filter(Boolean);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-16 w-full animate-fadeIn pb-32">
@@ -127,39 +144,54 @@ const DownloadsDashboard: React.FC<DownloadsDashboardProps> = ({ bookingState, e
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {documents.map((doc, idx) => (
-                <div 
-                  key={idx} 
-                  className={`group bg-white p-6 rounded-[32px] border-2 border-stone-50 shadow-sm hover:shadow-xl hover:border-teal-100/50 transition-all cursor-pointer flex items-center justify-between relative overflow-hidden ${doc.status.includes('days') ? 'opacity-70 grayscale' : ''}`}
-                >
-                  <div className="flex items-center gap-5 relative z-10">
-                    <div className="w-16 h-16 rounded-[24px] bg-stone-50 flex items-center justify-center text-stone-300 group-hover:bg-teal-50 group-hover:text-teal-700 transition-all shadow-inner">
-                      <doc.icon className="w-8 h-8" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-black text-stone-900 truncate pr-4">{doc.title}</h4>
-                      <p className="text-[10px] text-stone-400 font-bold uppercase tracking-tight mt-0.5 line-clamp-1">{doc.desc}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                         <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${doc.status === 'Ready' ? 'bg-teal-50 text-teal-700' : 'bg-amber-50 text-amber-700'}`}>
-                           {doc.status}
-                         </span>
-                         {doc.size !== '--' && <span className="text-[9px] font-bold text-stone-300">{doc.size}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  {doc.status === 'Ready' && (
-                    <div className="w-10 h-10 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-teal-700 group-hover:text-white transition-all shadow-sm">
-                       <Download className="w-5 h-5" />
-                    </div>
-                  )}
-                  {doc.status.includes('days') && (
-                    <div className="w-10 h-10 rounded-full bg-stone-50 flex items-center justify-center">
-                       <Clock className="w-5 h-5 text-stone-300" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+  {documents.map((doc, idx) => (
+    <div
+      key={idx}
+      onClick={() => doc.url && doc.url !== "#" && window.open(doc.url, "_blank")}
+      className={`group bg-white p-6 rounded-[32px] border-2 border-stone-50 shadow-sm hover:shadow-xl hover:border-teal-100/50 transition-all cursor-pointer flex items-center justify-between relative overflow-hidden ${
+        doc.status.includes("days") ? "opacity-70 grayscale" : ""
+      }`}
+    >
+      <div className="flex items-center gap-5 relative z-10">
+        <div className="w-16 h-16 rounded-[24px] bg-stone-50 flex items-center justify-center text-stone-300 group-hover:bg-teal-50 group-hover:text-teal-700 transition-all shadow-inner">
+          <doc.icon className="w-8 h-8" />
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-sm font-black text-stone-900 truncate pr-4">{doc.title}</h4>
+          <p className="text-[10px] text-stone-400 font-bold uppercase tracking-tight mt-0.5 line-clamp-1">
+            {doc.desc}
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span
+              className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${
+                doc.status === "Ready"
+                  ? "bg-teal-50 text-teal-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              {doc.status}
+            </span>
+            {doc.size !== "--" && (
+              <span className="text-[9px] font-bold text-stone-300">{doc.size}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {doc.status === "Ready" && (
+        <div className="w-10 h-10 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-teal-700 group-hover:text-white transition-all shadow-sm">
+          <Download className="w-5 h-5" />
+        </div>
+      )}
+
+      {doc.status.includes("days") && (
+        <div className="w-10 h-10 rounded-full bg-stone-50 flex items-center justify-center">
+          <Clock className="w-5 h-5 text-stone-300" />
+        </div>
+      )}
+    </div>
+  ))}
+</div>
           </section>
         </div>
 

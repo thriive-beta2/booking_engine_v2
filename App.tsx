@@ -40,29 +40,39 @@ useEffect(() => {
       console.log("🚀 Starting data fetch...");
 
       const urlParams = new URLSearchParams(window.location.search);
-      const eventId = urlParams.get('id') || '41';
+      const eventId = urlParams.get("id") || "41";
       const bookingIdFromUrl = urlParams.get("booking");
       const view = urlParams.get("view");
-      console.log("📌 Event ID:", eventId);
 
-      const allData = await getAllData(eventId);
+      const allData = await getAllData(eventId, bookingIdFromUrl);
 
       console.log("✅ API Response:", allData);
 
       setData(allData);
-       // Open dashboard directly from QR/public link
-      if (bookingIdFromUrl && view === "dashboard") {
+
+      if (bookingIdFromUrl) {
         setBookingState((prev) => ({
           ...prev,
           bookingId: bookingIdFromUrl,
-          currentStep: 7,
+          ticketUrl: allData?.bookingData?.ticketUrl || "",
+          invoiceUrl: allData?.bookingData?.invoiceUrl || "",
+          completionCertificateUrl:
+            allData?.bookingData?.completionCertificateUrl || "",
+          additionalAssets: allData?.bookingData?.additionalAssets || [],
         }));
 
         setPaymentResult("SUCCESS");
       }
+
+      if (bookingIdFromUrl && view === "dashboard") {
+        setBookingState((prev) => ({
+          ...prev,
+          currentStep: 7,
+        }));
+      }
     } catch (err) {
       console.error("❌ Error fetching data:", err);
-      setError('Failed to load event data. Please ensure the URL is correct.');
+      setError("Failed to load event data. Please ensure the URL is correct.");
     } finally {
       console.log("🏁 Data fetch completed");
       setLoading(false);
@@ -71,7 +81,6 @@ useEffect(() => {
 
   loadData();
 }, []);
-
   const nextStep = () => setBookingState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
   const prevStep = () => setBookingState(prev => ({ ...prev, currentStep: Math.max(1, prev.currentStep - 1) }));
 
@@ -157,11 +166,42 @@ const handlePayment = (success: boolean, bookingId?: string | number) => {
           onBack={prevStep}
         />
       );
-      case 6:
-        return paymentResult === 'SUCCESS' 
-          ? <PaymentStatus success={true}  bookingId={bookingState.bookingId} bookingState={bookingState} event={data.eventData.event} ui={data.uiContent.bookingSummary} onDashboard={() => setBookingState(prev => ({ ...prev, currentStep: 7 }))} />
-          : <div className="text-center py-20">Payment Failed. Please try again.</div>;
-      case 7:
+    case 6:
+  return paymentResult === 'SUCCESS'
+    ? (
+        <PaymentStatus
+          success={true}
+          bookingId={bookingState.bookingId}
+          bookingState={bookingState}
+          event={data.eventData.event}
+          ui={data.uiContent.bookingSummary}
+          onDashboard={async () => {
+            try {
+              const res = await fetch(`https://bookingapi.thriive.in/bookings/${bookingState.bookingId}`);
+              if (!res.ok) throw new Error("Failed to fetch booking details");
+
+              const bookingData = await res.json();
+
+              setBookingState(prev => ({
+                ...prev,
+                currentStep: 7,
+                ticketUrl: bookingData.ticketUrl || "",
+                invoiceUrl: bookingData.invoiceUrl || "",
+                completionCertificateUrl: bookingData.completionCertificateUrl || "",
+                additionalAssets: bookingData.additionalAssets || [],
+              }));
+            } catch (err) {
+              console.error("Error loading booking dashboard data:", err);
+
+              setBookingState(prev => ({
+                ...prev,
+                currentStep: 7,
+              }));
+            }
+          }}
+        />
+      )
+    : <div className="text-center py-20">Payment Failed. Please try again.</div>;   case 7:
         return <DownloadsDashboard bookingState={bookingState} bookingId={bookingState.bookingId} event={data.eventData.event} ui={data.uiContent.bookingSummary} />;
       default:
         return <LandingPage event={data.eventData.event} schedule={data.eventData.schedule} mentors={data.eventData.mentors} insights={data.eventData.insights} ui={data.uiContent.landingPage} onProceed={nextStep} />;

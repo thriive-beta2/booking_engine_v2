@@ -35,43 +35,59 @@ export const fetchData = async <T>(path: string): Promise<T> => {
   return response.json();
 };
 
-export const getAllData = async (eventId: string | number) => {
+export const getAllData = async (
+  eventId: string | number,
+  bookingId?: string | null
+) => {
   const apiResponse = await fetch(`https://bookingapi.thriive.in/events/${eventId}`);
-  
-  if (!apiResponse.ok) throw new Error('Event not found or API down');
+
+  if (!apiResponse.ok) throw new Error("Event not found or API down");
   const apiData = await apiResponse.json();
 
   const [uiContent, config] = await Promise.all([
-    fetchData<UIContent>('ui-content.json'),
-    fetchData<AppConfig>('config.json')
+    fetchData<UIContent>("ui-content.json"),
+    fetchData<AppConfig>("config.json"),
   ]);
-const mappedMentors = {
-  main: apiData.mentors?.[0]
-    ? {
-        name: apiData.mentors[0].name || "",
-        role: apiData.mentors[0].role || "",
-        bio: apiData.mentors[0].bio || "",
-        img: apiData.mentors[0].img || "https://placehold.co/400x500?text=Mentor",
+
+  let bookingData = null;
+
+  if (bookingId) {
+    try {
+      const bookingResponse = await fetch(`https://bookingapi.thriive.in/bookings/${bookingId}`);
+      if (bookingResponse.ok) {
+        bookingData = await bookingResponse.json();
+      } else {
+        console.warn("Booking fetch failed:", bookingResponse.status);
       }
-    : {
-        name: "Coming Soon",
-        role: "",
-        bio: "",
-        img: "https://placehold.co/400x500?text=Mentor",
-      },
+    } catch (error) {
+      console.warn("Booking fetch error:", error);
+    }
+  }
 
-  others: (apiData.mentors || []).slice(1).map((mentor: any) => ({
-    name: mentor.name || "",
-    role: mentor.role || "",
-    bio: mentor.bio || "",
-    img: mentor.img || "https://via.placeholder.com/200x200?text=Mentor",
-  })),
-};
-const mappedPlans: Plan[] = (apiData.plans || []).map((plan: any) => {
-  console.log("RAW PLAN:", plan);
-  console.log("RAW ICONS:", plan.amenities);
+  const mappedMentors = {
+    main: apiData.mentors?.[0]
+      ? {
+          name: apiData.mentors[0].name || "",
+          role: apiData.mentors[0].role || "",
+          bio: apiData.mentors[0].bio || "",
+          img: apiData.mentors[0].img || "https://placehold.co/400x500?text=Mentor",
+        }
+      : {
+          name: "Coming Soon",
+          role: "",
+          bio: "",
+          img: "https://placehold.co/400x500?text=Mentor",
+        },
 
-  return {
+    others: (apiData.mentors || []).slice(1).map((mentor: any) => ({
+      name: mentor.name || "",
+      role: mentor.role || "",
+      bio: mentor.bio || "",
+      img: mentor.img || "https://via.placeholder.com/200x200?text=Mentor",
+    })),
+  };
+
+  const mappedPlans: Plan[] = (apiData.plans || []).map((plan: any) => ({
     id: String(plan.planID),
     title: plan.PlanTitle || "",
     thumbnail:
@@ -84,7 +100,6 @@ const mappedPlans: Plan[] = (apiData.plans || []).map((plan: any) => {
     discountedPrice: Number(plan.OfferPrice || 0),
     finalPrice: Number(plan.PlanPrice || 0),
     gstDetails: plan.gstDetails || "",
-
     amenities: (plan.amenities || []).map((icon: any) => ({
       id: icon.id,
       title: icon.title || "",
@@ -92,54 +107,49 @@ const mappedPlans: Plan[] = (apiData.plans || []).map((plan: any) => {
       type: icon.type || "",
       planID: icon.planID,
     })),
-   /*  icons: (plan.icons || []).map((icon: any) => ({
-      id: icon.id,
-      title: icon.title || "",
-      iconUrl: encodeURI(icon.iconUrl || ""),
-      type: icon.type || "",
-      planID: icon.planID,
-    })), */
-  };
-});
-const eventData: EventResponse = {
-  event: {
-    id: apiData.EventID,
-    title: apiData.EventName,
-    banner:
-      apiData.banner ||
-      apiData.images?.find((img: any) => img.isMain)?.url ||
-      apiData.images?.find((img: any) => img.isThumbnail)?.url ||
-      "",
-    date: `${apiData.startDate} to ${apiData.endDate}`,
-    time: apiData.time || "06:00 AM",
-    venue: apiData.venue || "PVI Bengaluru",
-    description: apiData.description,
-    schedules: apiData.schedules || [],
-    plans: mappedPlans || [],
-  },
-  schedules: apiData.schedules || [],
-  mentors: mappedMentors,
-  insights: apiData.insights || []
-};
+  }));
 
-  const plans: Plan[] = apiData.plans.map((p: any) => ({
+  const eventData: EventResponse = {
+    event: {
+      id: apiData.EventID,
+      title: apiData.EventName,
+      banner:
+        apiData.banner ||
+        apiData.images?.find((img: any) => img.isMain)?.url ||
+        apiData.images?.find((img: any) => img.isThumbnail)?.url ||
+        "",
+      date: `${apiData.startDate} to ${apiData.endDate}`,
+      time: apiData.time || "06:00 AM",
+      venue: apiData.venue || "PVI Bengaluru",
+      description: apiData.description,
+      schedules: apiData.schedules || [],
+      plans: mappedPlans || [],
+    },
+    schedules: apiData.schedules || [],
+    mentors: mappedMentors,
+    insights: apiData.insights || [],
+  };
+
+  const plans: Plan[] = (apiData.plans || []).map((p: any) => ({
     ...p,
     id: p.planID.toString(),
-    thumbnail: p.bannerImage,
+    thumbnail: p.bannerImage || p.banner,
     finalPrice: p.PlanPrice,
-   amenities: (p.amenities || []).map((icon: any) => ({
+    amenities: (p.amenities || []).map((icon: any) => ({
       id: icon.id,
       title: icon.title || "",
       iconUrl: encodeURI(icon.iconUrl || ""),
       type: icon.type || "",
       planID: icon.planID,
-    })), }));
+    })),
+  }));
 
   return {
     eventData,
     plans,
     uiContent,
-    config
+    config,
+    bookingData,
   };
 };
 
